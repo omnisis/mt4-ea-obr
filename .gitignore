@@ -1,0 +1,7 @@
+samples/
+*.dat
+logs/
+libraries/
+*.dll
+*.ex4
+*.log
