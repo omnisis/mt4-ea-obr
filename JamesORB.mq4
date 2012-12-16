@@ -63,10 +63,10 @@ void generateDailyPendingOrders(double orbval)
       
    double tenEETHi = High[1]; //Goes back 1 bar to compute 10EET bar high
    double tenEETLo = Low[1]; // Goes back 1 bar to compute 10EET bar low
-   double buyEntry = tenEETHi + orbval;
    int slippage = 2;
    
-   double SL = tenEETHi - (1.65 * orbval);
+   double buyEntry = tenEETHi + orbval;
+   double SL = buyEntry - (1.65 * orbval);
    double TP = buyEntry + orbval;
    double SL_Dist = RelDistToPoints(SL);
    double TP_Dist = RelDistToPoints(TP);   
@@ -85,8 +85,10 @@ void generateDailyPendingOrders(double orbval)
    );
    
    double sellEntry = tenEETLo - orbval;
-   SL = tenEETHi - (1.65 * orbval);
+   SL = sellEntry + (1.65 * orbval);
    TP = sellEntry - orbval;
+   SL_Dist = RelDistToPoints(SL);
+   TP_Dist = RelDistToPoints(TP);
    
    // sell side
    PlacePendingStopOrder(
