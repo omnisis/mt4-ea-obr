@@ -1,8 +1,12 @@
-/**
+/*
+ *************************************************************************************************
  * A set of common utility functions for dealing with trades.  Including are wrapped methods
  * to place buy/sell orders as well as code for handling common errors that can occur when placing
  * trades.
- **/
+ *************************************************************************************************
+ */
+ 
+#include <user/utils_misc.mq4> 
 
 /**
  * Places a Pending BUY STOP order with the specified parameters.  Note that
@@ -12,10 +16,11 @@
  * @param Symb       Symbol to place order for  
  * @param ReqPrice   Requested fill price
  * @param Lots       Requested number of lots (volume)
- * @param ReqSL      Requested SL distance (in points)
- * @param ReqTP      Requested TP distance (in points)
+ * @param Dist_SL    Requested SL distance (in points)
+ * @param Dist_TP    Requested TP distance (in points)
 **/
-void PlaceBuyStopOrder(string Symb, 
+void PlaceBuyStopOrder(int    tradeType,
+                       string Symb, 
                        double ReqPrice, 
                        double Lots,
                        double Dist_SL, 
@@ -28,11 +33,15 @@ void PlaceBuyStopOrder(string Symb,
       Alert("Invalid Parameters! Cannot have negative values for price, sl or tp!");
       return;
    }
-   
+   double tradeFactor = 1.0; 
+   string tradeTypeStr = "BUY";
+   if(tradeType == OP_SELLSTOP) {
+      tradeTypeStr = "SELL";
+   } 
    
    // Looks good on the surface....let's do this...
          
-   Alert("Attempting to place a BUY_STOP order: sym=", Symb, ", price=", ReqPrice,
+   Alert("Attempting to place a ", tradeTypeStr, " STOP order: sym=", Symb, ", price=", ReqPrice,
          ", lots=", Lots, ", Dist_SL=", Dist_SL, ", Dist_TP=", Dist_TP); 
  
    
@@ -44,13 +53,18 @@ void PlaceBuyStopOrder(string Symb,
       double Free   =AccountFreeMargin();       // Free Margin
       double One_Lot=MarketInfo(Symb,MODE_MARGINREQUIRED);//Cost per 1 lot
       
+      
       //-----
       // Check the requested price
       //-----
-      if(NormalizeDouble(ReqPrice,Digits) < NormalizeDouble(Ask+Min_Dist*Point,Digits))
-      {
-         ReqPrice=Ask+Min_Dist*Point;  // Can't be any closer
-         Alert("Chnaged the requested price: Price = ", ReqPrice);
+      double nominalPurchasePrice = NormalizeDouble(Ask + (Min_Dist * Point), Digits);
+      if(StringFind(tradeTypeStr, "SELL"))
+         nominalPurchasePrice = NormalizeDouble(Bid - (Min_Dist * Point), Digits);
+         
+      if(NormalizeDouble(ReqPrice,Digits) < nominalPurchasePrice)
+      { 
+        ReqPrice=nominalPurchasePrice; // Can't be any closer
+        Alert("Chnaged the requested price: Price = ", ReqPrice);
       }
       
       //-----
@@ -85,18 +99,22 @@ void PlaceBuyStopOrder(string Symb,
       //-----
       // Send Order Out
       //-----
-      Alert("Sent request to place BUY_STOP order: sym=", Symb, ", price=", 
-         NormalizeDouble(ReqPrice,Digits),", lots=", Lots, ", SL=", SL,
-          ", TP=", TP); 
+      Alert("Sent request to place ", tradeTypeStr, 
+            " STOP order: sym=", Symb, 
+            ", price=", DblStr(ReqPrice),
+            ", lots=", Lots, 
+            ", SL=", DblStr(SL),
+            ", TP=", DblStr(TP)
+      ); 
  
   
       int ticket=OrderSend(Symb,
-         OP_BUYSTOP,  /* order type */
-         Lots,        /* num lots */
+         tradeType,                        /* order type */
+         Lots,                             /* num lots */
          NormalizeDouble(ReqPrice,Digits), /* price */
-         2, /* slippage */
-         SL, /* stoploss */
-         TP /* take profit */ 
+         2,                                /* slippage */
+         SL,                               /* stoploss */
+         TP                                /* take profit */ 
       );
          
       //-------------------------------------------------------------------- 7 --
@@ -138,6 +156,6 @@ void PlaceBuyStopOrder(string Symb,
 //-------------------------------------------------------------------------- 9 --
    Alert ("The script has completed its operations ---------------------------");
    return;                                      // Exit start()
-  }  // END F()
+  }  
 //-----------------------
 

@@ -34,5 +34,5 @@ double AccountPercentStopPips(string symbol, double percent, double lots)
 
 double CalcLotSize(string symbol, double price, double slDist)
 {
-  return 1.0;
+  return(1.0);
 }

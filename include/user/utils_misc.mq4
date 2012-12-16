@@ -3,7 +3,7 @@
  **/
 double RelDistToPips(string symbol, double diff)
 {
-   double res = diff/MarketInfo(symbol, MODE_TICKSIZE);
+   double res = diff/TruePoints(symbol);
    return(res);
 }
 
@@ -44,6 +44,7 @@ void ShowMarketInfo()
    double freeMargin   = AccountFreeMargin();
     
    Alert("== Market Info ==");
+   Alert("Digits: ", MarketInfo(sym, MODE_DIGITS));
    Alert("Points: ", DoubleToStr(Point,Digits));
    Alert("Spread: ", spread);
    Alert("TickSize: ", DoubleToStr(ticksize,Digits));
@@ -56,5 +57,22 @@ void ShowMarketInfo()
    Alert("MaxLots: ", maxLot);
    Alert("StopLevel: ", stopLevel);
 
-      
+}
+
+double TruePoints(string sym) 
+{
+   int digits = MarketInfo(sym, MODE_DIGITS);
+   double pts = MarketInfo(sym, MODE_POINT);
+   
+   if(digits == 3 || digits == 5) 
+   {
+      return(pts*10.0);
+   }
+   return(pts);
+   
+}
+
+string DblStr(double d)
+{
+  return(DoubleToStr(d,Digits));
 }
