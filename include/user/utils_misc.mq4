@@ -7,6 +7,11 @@ double RelDistToPips(string symbol, double diff)
    return(res);
 }
 
+double RelDistToPoints(double diff)
+{
+   return(diff/Point);
+}
+
 
 /**
  * Utility Function to show information about the current AccountBalance

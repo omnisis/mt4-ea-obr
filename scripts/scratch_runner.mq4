@@ -17,7 +17,8 @@ int start()
   {
 //----
    
-   //ShowMarketInfo();
+   ShowMarketInfo();
+   Alert("Points for: 0.00030= ", RelDistToPoints(0.0003));
    //ShowAccountInfo();
    //Alert("TruePoints: ", DoubleToStr(TruePoints(Symbol()), Digits));
    Alert("Point Size: ", DblStr(Point),
@@ -39,7 +40,7 @@ int start()
    //Alert("SL Pips: ",AccountPercentStopPips(Symbol(), 40, 3));
    Alert("Relative Pips: ", DblStr(RelDistToPips(Symbol(), 0.0002)));
    //Alert("Relative Pips: ", RelDistToPips(Symbol(), Ask-2*Point));
-   PlaceBuyStopOrder(OP_BUYSTOP, Symbol(), Ask+5*Point, 1, 25,25);
+   PlacePendingStopOrder(OP_BUYSTOP, Symbol(), Ask+5*Point, 1, 10,10);
    //PlaceBuyStopOrder(OP_SELLSTOP, Symbol(), Ask-5*Point, 1, 25,25);
  
 //----

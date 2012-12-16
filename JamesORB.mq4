@@ -4,12 +4,10 @@
 //|                                                                  |
 //+------------------------------------------------------------------+
 
-#include "utils_trades.mq4"
+#include <user/utils_trades.mq4>
 
 #property copyright "Copyright 2012,Clifford H. James"
 #property link      ""
-
-
 
 
 // CONSTANTS
@@ -19,7 +17,6 @@ extern double OBR_RATIO = 1.9;
 extern double ATR_PERIOD = 72;
 
                                             
- 
 
 //+------------------------------------------------------------------+
 //| expert initialization function                                   |
@@ -27,8 +24,7 @@ extern double ATR_PERIOD = 72;
 int init()
   {
 //---
-//PrintEnvInfo();
-PlaceBuyStopOrder(Symbol(), 1.2, 2.0, 1.24, 2.25);
+
    
 //----
    return(0);
@@ -45,69 +41,69 @@ int deinit()
   }
   
   
-//+-----
-//| calculates the ORB 
-//+-----
+//---
+// calculates the ORB 
+//---
 double CalcCurrORB() 
 {
   // Get the ATR of the 10EET Bar...we run on the 
   double currATR = iATR(NULL, 0, ATR_PERIOD, 1);
-  Print("Curr ATR(72): ", currATR);
+  //Print("Curr ATR(72): ", currATR);
   return (currATR + OBR_PIP_OFFSET);
 }
 
 
 
-//+-----
-//| generatePendingBuy()
-//+-----
+//---
+// Generate Daily pending orders based on the specified ORB value
+// This will generate both a BUY_STOP and SELL_STOP pending order.
+//---
 void generateDailyPendingOrders(double orbval) 
 {
       
    double tenEETHi = High[1]; //Goes back 1 bar to compute 10EET bar high
    double tenEETLo = Low[1]; // Goes back 1 bar to compute 10EET bar low
    double buyEntry = tenEETHi + orbval;
-   Alert("Buy Entry for: ", TimeToStr(TimeCurrent(),TIME_DATE|TIME_MINUTES), " is: ", buyEntry);
-   Alert("Current Bid: ",Bid,", Current Ask: ", Ask);
+   int slippage = 2;
+   
+   double SL = tenEETHi - (1.65 * orbval);
+   double TP = buyEntry + orbval;
+   double SL_Dist = RelDistToPoints(SL);
+   double TP_Dist = RelDistToPoints(TP);   
+   int lotSize = 1;   
+   
+   Alert("Current Price: ", Bid,"/",Ask);
       
-   // buy side   
-   int buyTicket = OrderSend(Symbol(),
+   // buy side  
+   PlacePendingStopOrder(
       OP_BUYSTOP,
-      1,                            // Volume / Lots
-      buyEntry,                     // Desired Strike Price                       
-      2,                            // slippage
-      tenEETHi - (1.65 * orbval),   // SL
-      buyEntry + orbval,              // TP
-      "test buy order",
-      42,
-      0,
-      Green);
-      
-   if(buyTicket<0) {
-         Print("BuyOrder Placement failed with error#: ",GetLastError());
-   }
+      Symbol(),
+      buyEntry,
+      lotSize,
+      SL_Dist,
+      TP_Dist
+   );
+   
+   double sellEntry = tenEETLo - orbval;
+   SL = tenEETHi - (1.65 * orbval);
+   TP = sellEntry - orbval;
    
    // sell side
-   double sellEntry = tenEETLo - orbval;
-   int sellTicket = OrderSend(Symbol(),
+   PlacePendingStopOrder(
       OP_SELLSTOP,
-      1,                            // Lots 
-      sellEntry,                    // strike price
-      2,                            // slippage
-      tenEETLo - (1.65 * orbval),   // SL
-      sellEntry - orbval,           // TP
-      "test sell buy",  
-      43,
-      0,
-      Red);
-   if(sellTicket<0) {
-      Print("SellOrder Placement failed with error#: ",GetLastError());
-   }
-      
+      Symbol(),
+      sellEntry,
+      lotSize,
+      SL_Dist,
+      TP_Dist
+   );
       
       
 }
 
+//---
+// determine if we are at the close of the day or not
+//---
 bool AtCloseOfDay() {
    int currHour=TimeHour(TimeCurrent());
    int currMin=TimeMinute(TimeCurrent());
@@ -115,9 +111,6 @@ bool AtCloseOfDay() {
    
 }
 
-void CloseAllOpenOrders() {
-   //TODO: close all open orders here ...
-}
 
 //-------------------------------------------------------------------------------
 // Calculate trade volume (lot size) for the current symbol based on:
@@ -156,77 +149,6 @@ double calcSLDist(double entryPrice, double stopLossPrice)
 }
 
 
-void makeBuyOrder(string symb, double reqPrice) {
-   double distSL = 2;  //stop-loss(pt)
-   int    distTP = 3;  //take-profit(pt)
-   double prots = 0.35; //percentage of free margin
-   
-  
-   // repeat-until-successful loop for recoverable errors
-   while(true) {
-  
-     //-----
-     // grab some mkt info
-     //-----
-      int minDist = MarketInfo(symb, MODE_STOPLEVEL); // min stop dist
-      double minLot = MarketInfo(symb, MODE_MINLOT); // min lots
-      double step = MarketInfo(symb, MODE_LOTSTEP); // step to change lots
-      double freeMargin = AccountFreeMargin(); // free margin
-      double oneLot = MarketInfo(symb, MODE_MARGINREQUIRED); // cost of 1 lot
-   
-      //-----
-      // check margin conditions (bankroll)
-      //-----
-      // 2000=1        
-      double lots = MathFloor(freeMargin * prots * oneLot) * step; // actual lots 
-      if(lots < minLot) {
-         Alert(" Not enough money for ",minLot," lots!");
-         break;
-      }
-      
-      //-----
-      // check min SL dist conditions
-      //-----
-      //double slDist = (Bid - reqSL)/Point;
-      if(distSL < minDist) {
-         distSL = minDist;
-         Alert(" Increased the distance of SL = ",distSL," pt");
-      }
-      double SL = Bid - distSL * Point;
-
-      //-----
-      // check TP dist conditions
-      //-----
-      if(distTP < minDist) {
-         distTP = minDist;
-         Alert(" Increased the distance of TP = ", distTP," pt");
-      } 
-      
-      double TP = Bid + distTP * Point;
-      
-      //-----
-      // Send out the Order
-      //----
-      Alert(" Sending Order request to server ...");
-      int ticket = OrderSend(symb, OP_BUYSTOP, lots, reqPrice, 2, SL, TP);
-      if (ticket>0) {
-         Alert("Opened order BUY ",ticket);
-         break;
-      }  
-      
-      //-----
-      // handle potential errors
-      //-----
-      int err = GetLastError();
-      switch(err)
-      {
-         
-      }
-       
-   }   
-   
-}
-
 
 
 //+------------------------------------------------------------------+
@@ -246,9 +168,9 @@ int start()
    
    if(AtCloseOfDay()) {
       if(!processedClose) {
-         Alert("Got Close of Day @: ", TimeToStr(Time[0],TIME_DATE|TIME_MINUTES));
+         //Alert("Got Close of Day @: ", TimeToStr(Time[0],TIME_DATE|TIME_MINUTES));
          //printInfo();
-         CloseAllOpenOrders();
+         CloseAllOutstandingOrders();
          processedClose = true;
       }
       return(0);
@@ -265,10 +187,10 @@ int start()
    if(currHour == 11) {
         currOrb = CalcCurrORB();
         
-        Alert("ORB value on: ", TimeToStr(Time[0],TIME_DATE|TIME_MINUTES), " is: ", currOrb);
+        //Alert("ORB value on: ", TimeToStr(Time[0],TIME_DATE|TIME_MINUTES), " is: ", currOrb);
         
         // generate daily pending orders for buy/sell
-        //generateDailyPendingOrders(currOrb);
+        generateDailyPendingOrders(currOrb);
    }
   
    
